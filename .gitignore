@@ -1,0 +1,30 @@
+# Virtual environment
+venv/
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Databases
+*.sqlite
+*.db
+
+# Config and secrets
+config.json
+*.pem
+*.key
+*.crt
+
+# Logs and runtime files
+*.log
+*.out
+*.pid
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/

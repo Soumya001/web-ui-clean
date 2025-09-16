@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% set title = 'Search - ' ~ SITE_NAME %}
+{% set meta_description = 'Search miners, wallets, and blocks in real time across the ' ~ SITE_NAME ~ ' mining pool.' %}
+{% block body %}
+
+<section class="card" style="margin-bottom:8px;">
+  <form method="get" action="/search" class="field-row">
+    <input name="q" value="{{ q }}" placeholder="Search user or worker…" style="width:360px" />
+    <button type="submit">Search</button>
+  </form>
+</section>
+
+<section class="card">
+  {% if q and matches|length == 0 %}
+    <p style="margin:0;">No matches for “{{ q }}”.</p>
+  {% endif %}
+
+  {% if matches|length %}
+  <div class="table-wrap">
+    <table class="table-xp">
+      <colgroup>
+        <col style="width:60%" />
+        <col style="width:12%" />
+        <col style="width:16%" />
+        <col style="width:12%" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="addr">User/Address</th>
+          <th class="center">Workers</th>
+          <th class="num">Hashrate1m</th>
+          <th class="num">Best Share</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in matches %}
+          {# derive clean wallet (strip ".worker" if present) #}
+          {% set raw = (w.wallet or w.address or w.user or '') %}
+          {% set dot = raw.find('.') %}
+          {% set wallet = (raw[:dot] if dot != -1 else raw) %}
+          {# worker count: prefer active_workers length, fallback to w.workers #}
+          {% set wc = (w.active_workers|length) if w.active_workers else (w.workers|int if w.workers is not none else 0) %}
+          <tr data-bestshare="{{ w.bestshare or w.bestever or 0 }}">
+            <td class="addr ellipsis" title="{{ wallet }}"><a href="/wallet/{{ wallet }}">{{ wallet }}</a></td>
+            <td class="center">{{ wc }}</td>
+            <td class="num">{{ w.hashrate1m or '—' }}</td>
+            <td class="num bestshare-cell">—</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<script>
+  // Format Best Share with units (K,M,G,T,P)
+  (function(){
+    function fmtUnits(n){
+      const v = Number(n);
+      if (!isFinite(v) || v <= 0) return '—';
+      const units = [
+        {v: 1e15, s: 'P'},
+        {v: 1e12, s: 'T'},
+        {v: 1e9,  s: 'G'},
+        {v: 1e6,  s: 'M'},
+        {v: 1e3,  s: 'K'},
+      ];
+      for (const {v:cut,s} of units){
+        if (v >= cut){
+          const x = v / cut;
+          return (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)) + s;
+        }
+      }
+      return String(Math.round(v)); // < 1000
+    }
+
+    document.querySelectorAll('tbody tr[data-bestshare]').forEach(tr=>{
+      const raw = tr.getAttribute('data-bestshare') || '0';
+      const cell = tr.querySelector('.bestshare-cell');
+      if (cell) cell.textContent = fmtUnits(raw);
+    });
+  })();
+</script>
+
+{% endblock %}

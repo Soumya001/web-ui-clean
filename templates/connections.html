@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% set title = 'Connections - ' ~ SITE_NAME %}
+{% set meta_description = 'Pool connection details for ' ~ SITE_NAME ~ ': stratum endpoints, ports, vardiff targets, and latency info.' %}
+{% block body %}
+{% set POOL_URL = 'stratum+tcp://in.xppool.in:3333' %}
+
+<style>
+  .mini-row { display:flex; align-items:center; gap:8px; margin:4px 0; }
+  .mini-label { min-width:72px; color:#333; font-weight:600; }
+  .copy-pill {
+    display:inline-block; padding:2px 6px; border:1px solid #bbb; border-radius:4px;
+    background:#f8f8f8; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size:12px; cursor:pointer; user-select:all;
+  }
+  .mini-note { font-size:10px; opacity:.8; margin-top:4px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    background: #222; color: #fff; padding: 6px 10px; border-radius: 6px;
+    font-size: 12px; opacity: 0; pointer-events: none; transition: opacity .15s ease;
+    z-index: 9999;
+  }
+  .toast.show { opacity: .95; }
+  pre.blk {
+    margin:0; background:#111; color:#0f0; padding:6px; border-radius:4px;
+    font-family: ui-monospace, monospace; font-size:13px; line-height:1.3;
+    cursor: pointer; user-select: all;
+  }
+</style>
+
+<!-- Pool detail -->
+<section class="card">
+  <label>Pool</label>
+  <div class="mini-row">
+    <span class="mini-label">URL</span>
+    <span class="copy-pill" data-copy="{{ POOL_URL }}" title="Click to copy">{{ POOL_URL }}</span>
+  </div>
+</section>
+
+<!-- Login -->
+<section class="card" style="margin-top:8px;">
+  <label>Login</label>
+  <div class="mini-row">
+    <span class="mini-label">Username</span>
+    <span class="copy-pill" data-copy="WALLET.worker" title="Click to copy">WALLET.worker</span>
+  </div>
+  <div class="mini-row">
+    <span class="mini-label">Password</span>
+    <span class="copy-pill" data-copy="x" title="Click to copy">x</span>
+  </div>
+  <div class="mini-note">Tip: Replace <code>WALLET</code> with your address and <code>worker</code> with any name.</div>
+</section>
+
+<!-- Miner setup -->
+<section class="card" style="margin-top:8px;">
+  <label>Miner Setup</label>
+  {% set CFG %}
+URL:   {{ POOL_URL }}
+User:  WALLET.worker
+Pass:  x
+  {% endset %}
+  <pre class="blk" data-copy="{{ CFG|trim }}" title="Click to copy">{{ CFG|trim }}</pre>
+</section>
+
+<div id="toast" class="toast">Copied!</div>
+
+<script>
+(function(){
+  const toast = document.getElementById('toast');
+  let t;
+  function showToast(msg){
+    toast.textContent = msg || 'Copied!';
+    toast.classList.add('show');
+    clearTimeout(t);
+    t = setTimeout(()=>toast.classList.remove('show'), 1000);
+  }
+  async function copyText(text){
+    try{
+      if (navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta=document.createElement('textarea');
+        ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      }
+      showToast('Copied!');
+    }catch(_){ showToast('Copy failed'); }
+  }
+  document.addEventListener('click', (e)=>{
+    const el = e.target.closest('[data-copy]');
+    if (!el) return;
+    const text = el.getAttribute('data-copy') || el.textContent;
+    copyText(text);
+  });
+})();
+</script>
+{% endblock %}

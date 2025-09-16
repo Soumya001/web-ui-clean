@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block body %}
+<section class="field-row" style="margin:12px 16px;">
+  <div class="window" style="width:100%;">
+    <div class="title-bar">
+      <div class="title-bar-text">
+        {% if address %}
+          Rewards — {{ address }}
+        {% else %}
+          Latest Pool Rewards
+        {% endif %}
+      </div>
+      <div class="title-bar-controls">
+        {% if address %}
+          <a href="/wallet/{{ address }}" class="button">Back to Wallet</a>
+        {% else %}
+          <a href="/" class="button">Home</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="window-body" style="overflow:auto;">
+      {% if address %}
+        <p>Block hits recorded for this wallet. Links open on mempool.space.</p>
+      {% else %}
+        <p>Recent block rewards found by the pool. Links open on mempool.space.</p>
+      {% endif %}
+
+      {% if rewards and rewards|length > 0 %}
+      <div class="table-wrap" style="overflow:auto;">
+        <table class="table" role="grid" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th>Height</th>
+              <th>Block</th>
+              <th>Time (epoch)</th>
+              <th>Reward (BTC)</th>
+              {% if not address %}
+                <th>Wallet</th>
+              {% endif %}
+              <th>Transaction</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for r in rewards %}
+            <tr>
+              <td>{{ r.height }}</td>
+              <td>
+                {% if r.hash %}
+                  <a href="{{ explorer_block.replace('{blockhash}', r.hash) }}" target="_blank" rel="noopener">…{{ r.hash[-12:] }}</a>
+                {% else %}—{% endif %}
+              </td>
+              <td>{{ r.ts or '—' }}</td>
+              <td>{{ "%.8f"|format(r.reward_btc or 0.0) }}</td>
+              {% if not address %}
+                <td>
+                  {# try common field names gracefully #}
+                  {% set wal = r.address or r.wallet or r.user %}
+                  {% if wal %}
+                    <a href="/wallet/{{ wal }}">{{ wal }}</a>
+                  {% else %}—{% endif %}
+                </td>
+              {% endif %}
+              <td>
+                {% if r.txid %}
+                  <a href="{{ explorer_tx.replace('{txid}', r.txid) }}" target="_blank" rel="noopener">…{{ r.txid[-12:] }}</a>
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {% if address %}
+          <p><em>No block rewards recorded for this wallet yet.</em></p>
+        {% else %}
+          <p><em>No pool rewards recorded yet.</em></p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

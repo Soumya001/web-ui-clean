@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% set title = 'Dashboard - ' ~ SITE_NAME %}
+{% set meta_description = 'Live Bitcoin mining pool dashboard with hashrate, workers, shares, and real-time node stats from ' ~ SITE_NAME ~ '.' %}
+{% block body %}
+<section class="grid grid-3">
+  <div class="field-row-stacked card">
+    <label>Total Hashrate (1m)</label>
+    <div><strong id="totalHashrate1m">-</strong></div>
+  </div>
+  <div class="field-row-stacked card">
+    <label>Workers / Users</label>
+    <div><strong>{{ pool.pool.get('Workers') or pool.pool.get('workers') or '' }}</strong> /
+      <strong>{{ pool.pool.get('Users') or pool.pool.get('users') or '' }}</strong>
+    </div>
+  </div>
+  <div class="field-row-stacked card">
+    <label>Shares (acc / rej)</label>
+    <div><strong>{{ pool.pool.get('accepted') or '' }}</strong> / <strong>{{ pool.pool.get('rejected') or '' }}</strong></div>
+  </div>
+</section>
+
+<section class="grid grid-3" style="margin-top:12px;">
+  <div class="field-row-stacked card">
+    <label>Best Share</label>
+    <div><strong>{{ pool.pool.get('bestshare') or '' }}</strong></div>
+  </div>
+  <div class="field-row-stacked card">
+    <label>Pool Runtime (s)</label>
+    <div><strong>{{ pool.pool.get('runtime') or '' }}</strong></div>
+  </div>
+  <div class="field-row-stacked card">
+    <label>Node: Block / Diff / Peers</label>
+    <div>
+      <strong>{{ (node.block or '') }}</strong> /
+      <strong>{{ (node.difficulty or '') }}</strong> /
+      <strong>{{ (node.connections or '') }}</strong>
+    </div>
+  </div>
+</section>
+
+<section class="card" style="margin-top:12px;">
+  <div class="field-row">
+    <button onclick="refreshNow()">Refresh</button>
+    <span id="status" style="margin-left:8px;">Auto-refresh every 5s…</span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table-xp">
+      <colgroup>
+        <col style="width:52%" />
+        <col style="width:16%" />
+        <col style="width:16%" />
+        <col style="width:10%" />
+        <col style="width:6%"  />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="addr">User/Address</th>
+          <th class="num">Hashrate1m</th>
+          <th class="num">Shares</th>
+          <th class="num">Best Share</th>
+          <th class="num">Workers</th>
+        </tr>
+      </thead>
+      <tbody id="userRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  function esc(s){return (s??'').toString().replace(/[&<>"]/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m]))}
+
+  function fmtUnits(n){
+    const v = Number(n);
+    if (!isFinite(v) || v <= 0) return '—';
+    const units = [
+      {v: 1e15, s: 'P'},
+      {v: 1e12, s: 'T'},
+      {v: 1e9,  s: 'G'},
+      {v: 1e6,  s: 'M'},
+      {v: 1e3,  s: 'K'},
+    ];
+    for (const {v:cut,s} of units){
+      if (v >= cut){
+        const x = v / cut;
+        return (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)) + s;
+      }
+    }
+    return String(Math.round(v)); // < 1000
+  }
+
+  function cleanWallet(u){
+    const raw = u.wallet || u.address || (u.user ? String(u.user).split('.',1)[0] : '') || '';
+    return String(raw).split('.',1)[0];
+  }
+
+  function workerCount(u){
+    if (Array.isArray(u.active_workers)) return u.active_workers.length;
+    const w = u.workers;
+    return (w==null ? 0 : Number(w)||0);
+  }
+
+  async function loadPool(){
+    const STALENESS_SEC = 10 * 60; // hide wallets idle > 10 minutes
+
+    // Helper: parse values like 1234, "1,234", "1.23G", "500K" into raw H/s number
+    function parseHashrateVal(x){
+      if (x == null) return 0;
+      if (typeof x === 'number' && isFinite(x)) return x;
+      let s = String(x).trim();
+      if (!s) return 0;
+      // remove commas
+      s = s.replace(/,/g,'');
+      // plain number
+      if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
+      // unit suffix (K/M/G/T/P)
+      const m = s.match(/^(-?\d+(\.\d+)?)([kKmMgGtTpP])$/);
+      if (m){
+        const base = Number(m[1]);
+        const u = m[3].toUpperCase();
+        const mult = {K:1e3, M:1e6, G:1e9, T:1e12, P:1e15}[u] || 1;
+        return base * mult;
+      }
+      // fallback
+      const maybe = Number(s);
+      return isFinite(maybe) ? maybe : 0;
+    }
+
+    // fetch list (keep your sliced limit)
+    const r = await fetch('/api/pool');
+    const j = await r.json();
+    const list = Array.isArray(j.users) ? j.users.slice(0,100) : [];
+
+    const cutoff = Math.floor(Date.now()/1000) - STALENESS_SEC;
+
+    // keep your same "visible" logic (unchanged)
+    const visible = list.filter(u => {
+      if (!u) return false;
+      const ts = u.last_seen_ts || null;
+      if (ts === null) return true; // keep if DB has no info
+      return Number(ts) >= cutoff;
+    });
+
+    // compute total 1m hashrate from visible users using the parser (only positive numbers)
+    const totalHashrate = visible.reduce((acc, u) => {
+      const raw = u?.hashrate1m ?? u?.hashrate ?? 0;
+      const v = parseHashrateVal(raw);
+      return acc + (isFinite(v) && v > 0 ? v : 0);
+    }, 0);
+
+    // update the Total Hashrate element (ensure you added id="totalHashrate1m" in template)
+    const totalEl = document.getElementById('totalHashrate1m');
+    if (totalEl) {
+      totalEl.textContent = (isFinite(totalHashrate) && totalHashrate > 0) ? fmtUnits(totalHashrate) : '—';
+    } else {
+      console.warn('loadPool: #totalHashrate1m element not found — add id="totalHashrate1m" to the template.');
+    }
+
+    // ===== keep your per-user rendering exactly as before =====
+    const rows = visible.map(u=>{
+      const wallet = cleanWallet(u);
+      const addrHtml = `<a href="/wallet/${encodeURIComponent(wallet)}">${esc(wallet)}</a>`;
+      const h1   = esc(u.hashrate1m || '—');
+      const shares = (u.shares!=null ? u.shares : (u.accepted!=null ? u.accepted : '—'));
+      const best  = (u.bestshare!=null ? u.bestshare : (u.bestever!=null ? u.bestever : 0));
+      const bestFmt = fmtUnits(best);
+      const wk   = workerCount(u);
+
+      return `<tr>
+        <td class="addr ellipsis" title="${esc(wallet)}">${addrHtml}</td>
+        <td class="num">${h1}</td>
+        <td class="num">${esc(shares)}</td>
+        <td class="num">${bestFmt}</td>
+        <td class="num">${esc(wk)}</td>
+      </tr>`;
+    });
+
+    document.getElementById('userRows').innerHTML = rows.join('');
+
+    // small debug: show sample raw hr values and computed total in console
+    console.debug('loadPool: visible count=', visible.length, 'sample raw hr=', visible.slice(0,6).map(u => u.hashrate1m ?? u.hashrate), 'totalH/s=', totalHashrate);
+  }
+
+
+  async function loadNode(){ try{ await fetch('/api/node'); }catch(e){} }
+  function refreshNow(){ loadPool(); loadNode(); }
+  setInterval(refreshNow, 5000);
+  refreshNow();
+</script>
+{% endblock %}

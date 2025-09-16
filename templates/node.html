@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% set title = 'Node - ' ~ SITE_NAME %}
+{% set meta_description = 'Bitcoin node status for ' ~ SITE_NAME ~ ': block height, peers, mempool, ZMQ, and RPC health.' %}
+{% block body %}
+
+<section class="field-row" style="margin-bottom:8px;">
+  <button onclick="loadNode()">Refresh Node Info</button>
+</section>
+
+<section class="card">
+  <div class="json-block">
+    <pre id="nodeBox">Loading…</pre>
+  </div>
+</section>
+
+<script>
+  async function loadNode(){
+    try{
+      const r = await fetch('/api/node');
+      const j = await r.json();
+      document.getElementById('nodeBox').textContent = JSON.stringify(j, null, 2);
+    }catch(e){
+      document.getElementById('nodeBox').textContent = 'Failed to load node info';
+    }
+  }
+  loadNode();
+</script>
+
+{% endblock %}
+

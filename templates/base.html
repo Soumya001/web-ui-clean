@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    {# --- Dynamic SEO vars --- #}
+    {% set _title  = title or (SITE_NAME ~ ' — Bitcoin Mining Pool | Fast, Secure & Reliable') %}
+    {% set _desc   = meta_description or 'Join XPPool, a secure and reliable Bitcoin mining pool with low fees, high performance, and real-time stats.' %}
+    {% set _robots = meta_robots or 'index,follow' %}
+    {% set _canon  = (request.url_root.replace('http://','https://',1).rstrip('/') ~ request.path) %}
+
+    <title>{{ _title }}</title>
+    <meta name="description" content="{{ _desc }}">
+    <link rel="canonical" href="{{ _canon }}">
+    <meta name="robots" content="{{ _robots }}">
+
+    {# --- Social preview (OpenGraph/Twitter) --- #}
+    {% set _social = meta_social if meta_social is defined else True %}
+    {% set _image  = meta_image or url_for('static', filename='xp-pool.png', _external=True) %}
+    {% if _social %}
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ _title }}">
+    <meta property="og:description" content="{{ _desc }}">
+    <meta property="og:url" content="{{ _canon }}">
+    <meta property="og:image" content="{{ _image }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ _title }}">
+    <meta name="twitter:description" content="{{ _desc }}">
+    <meta name="twitter:image" content="{{ _image }}">
+    {% endif %}
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="preload" href="{{ url_for('static', filename='css/XP.purged.css') }}" as="style">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/XP.purged.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='xp-extras.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='xp-window.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/primeicons.css') }}?v=1">
+
+    <style>
+      html, body {
+        height:100%;
+        margin:0;
+        overflow:hidden;
+        background:#2f5d9a;
+      }
+      code { font-size:12px; }
+      a[role="tab"] { margin-right:8px; }
+    </style>
+
+    {# JSON-LD structured data #}
+    <script type="application/ld+json">
+    {
+      "@context":"https://schema.org",
+      "@type":"Organization",
+      "name":"{{ SITE_NAME }}",
+      "url":"{{ request.url_root.replace('http://','https://',1) }}",
+      "logo":"{{ url_for('static', filename='xp-pool.png', _external=True) }}"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context":"https://schema.org",
+      "@type":"WebSite",
+      "name":"{{ SITE_NAME }}",
+      "url":"{{ request.url_root.replace('http://','https://',1) }}",
+      "potentialAction":{
+        "@type":"SearchAction",
+        "target":"{{ request.url_root.replace('http://','https://',1).rstrip('/') }}/search?q={query}",
+        "query-input":"required name=query"
+      }
+    }
+    </script>
+
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+   <a href="/" class="refresh-btn" aria-label="Go to Dashboard"><i class="pi pi-refresh"></i> </a>
+    <div id="xp-window" class="window" role="dialog" aria-label="{{ SITE_NAME }}">
+      <div class="title-bar">
+        <div class="title-bar-text">{{ SITE_NAME }} — {{ SITE_TAGLINE }}</div>
+        <div class="title-bar-controls">
+          <button aria-label="Minimize"></button>
+          <button aria-label="Maximize"></button>
+          <button aria-label="Close"></button>
+        </div>
+      </div>
+
+      <div class="window-body content">
+        {# show menu except on home landing or on a non-BTC coin page #}
+	{% if not (request.endpoint == 'index' and request.path == '/') and not (request.endpoint == 'coin_page' and (coin|default('btc') != 'btc')) %}
+        <menu role="tablist" class="top-tabs">
+          <a href="{{ url_for('coin_page', coin=(coin if coin else 'btc')) }}" role="tab">Dashboard</a>
+          <a href="{{ url_for('node_page') }}?coin={{ coin if coin else 'btc' }}" role="tab">Node</a>
+          <a href="{{ url_for('miners_page') }}?coin={{ coin if coin else 'btc' }}" role="tab">Miners</a>
+          <a href="{{ url_for('blocks_page') }}?coin={{ coin if coin else 'btc' }}" role="tab">Blocks</a>
+          <a href="{{ url_for('connections_page') }}?coin={{ coin if coin else 'btc' }}" role="tab">Connections</a>
+          <a href="{{ url_for('search_page') }}?coin={{ coin if coin else 'btc' }}" role="tab">Search</a>
+          <a href="{{ url_for('about_page') }}?coin={{ coin if coin else 'btc' }}" role="tab">About</a>
+          <a href="{{ url_for('xpgame_redirect') }}" role="tab">XPGAME</a>
+        </menu>
+        {% endif %}
+
+        <div class="scroll {% block body_class %}{% endblock %}">
+          {% block body %}{% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <section class="footer" role="contentinfo" aria-label="Footer">
+          <div class="footer-flex">
+            <!-- Left: MRR logo + text -->
+            <div class="footer-left">
+              <div class="rental-badge" role="link" aria-label="Mining Rig Rentals">
+                <a href="https://www.miningrigrentals.com/" target="_blank" rel="noopener noreferrer" class="rental-link">
+                  <img src="{{ url_for('static', filename='mrr.png') }}" alt="MiningRigRentals" class="rental-logo"/>
+                  <span class="rental-text">
+                    <span class="rental-title">Mining Rig Rentals</span>
+                    <small class="rental-sub">MMR · Supported · XP Pool</small>
+                  </span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Center: Updated + Discord + Copyright -->
+            <div class="footer-center">
+              Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }} UTC
+              <br>
+              <a href="https://discord.gg/6eb2hVuQNh" target="_blank" rel="noopener">Join our Discord</a>
+              <br>
+              © {{ now().year }} {{ SITE_NAME }} — All rights reserved
+            </div>
+
+            <!-- Right: spacer -->
+            <div class="footer-right">&nbsp;</div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <script>
+     (function () {
+       const q = new URLSearchParams(location.search);
+       if (q.get('resetwin') === '1') {
+         ['xpwin:rect','xpwin:isMax','xpwin:isMin','xpwin:zTop'].forEach(k => sessionStorage.removeItem(k));
+       }
+     })();
+     </script>
+    <script src="/static/xp-window.js?v=mobile-fix-5" defer></script>
+    <script>
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          if (typeof startPolling === "function") {
+            startPolling();
+          }
+        }, 600);
+      });
+    </script>
+  </body>
+</html>

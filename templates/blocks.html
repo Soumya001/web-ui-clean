@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>Recent Blocks</h2>
+
+{% if not blocks %}
+  <p>No blocks found.</p>
+{% else %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Height</th>
+        <th>Time (UTC)</th>
+        <th>Reward</th>
+        <th>Miner</th>
+        <th>Links</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for b in blocks %}
+      <tr>
+        <td>{{ b.height }}</td>
+        <td>
+          {% if b.ts %}
+            {{ (b.ts | int) | datetimeformat }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if b.reward_btc is not none %}
+            {{ "%.8f"|format(b.reward_btc) }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>{{ b.address or '-' }}</td>
+        <td>
+          {% if b.txid %}
+            <a href="{{ explorer_tx.format(txid=b.txid) }}" target="_blank" rel="noopener">tx</a>
+          {% endif %}
+          {% if b.blockhash %}
+            &nbsp;<a href="{{ explorer_block.format(blockhash=b.blockhash) }}" target="_blank" rel="noopener">block</a>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% endblock %}

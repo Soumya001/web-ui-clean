@@ -1,0 +1,32 @@
+{# templates/coin.html #}
+{% extends "base.html" %}
+
+{% block title %}{{ coin|upper }} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px;margin:18px auto;padding:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <h1 style="margin:0">{{ coin|upper }} dashboard</h1>
+      <p style="margin:0.2rem 0;color:#888">Pool view for {{ coin|upper }}</p>
+    </div>
+    <div>
+      <a class="xp-link" href="{{ url_for('home') }}" style="padding:8px 12px;border:1px solid #0b2e0b;border-radius:6px;text-decoration:none;">← Back to coins</a>
+      <a class="xp-link" href="{{ url_for('blocks_page', coin=coin) }}" style="padding:8px 12px;border:1px solid #0b2e0b;border-radius:6px;text-decoration:none;margin-left:8px;">Blocks</a>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Minimal placeholder: include the existing index content by linking to it or embed components -->
+  <p>This is the per-coin page. You can display coin-specific pool status, miners list and charts here.</p>
+
+  <!-- Example: a small summary card -->
+  <div style="margin-top:12px;padding:12px;border-radius:8px;border:1px solid #0b2e0b;">
+    <strong>Coin:</strong> {{ coin|upper }}<br>
+    <strong>Pool:</strong> (use backend to inject pool data per coin)
+  </div>
+
+  <!-- If you already have templates/partials for the miners table or charts, include them here -->
+</div>
+{% endblock %}

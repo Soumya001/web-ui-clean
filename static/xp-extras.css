@@ -1,0 +1,311 @@
+/* ===== Cards ===== */
+.card {
+  background: #fff;
+  padding: 8px;
+  border: 1px solid #bbb;
+}
+
+/* ===== Tables ===== */
+.table-wrap {
+  margin-top: 8px;
+  overflow-x: auto; /* scroll only if truly needed */
+}
+
+.table-xp {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto; /* was fixed -> caused horiz scrollbar */
+}
+
+.table-xp th,
+.table-xp td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #c9c9c9;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.table-xp thead th {
+  font-weight: 600;
+  text-align: center;
+}
+
+.table-xp td.num,
+.table-xp th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-xp td.ts {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.table-xp td.addr,
+.table-xp th.addr {
+  text-align: left;
+}
+
+/* Highlight row on hover */
+.table-xp tbody tr:hover {
+  background: #e6f0ff;
+}
+
+/* ===== Helpers ===== */
+.center { text-align: center; }
+
+.ellipsis {
+  display: block;
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.addr .workers {
+  font-size: 12px;
+  opacity: 0.85;
+  white-space: normal;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .ellipsis { max-width: 300px; }
+}
+@media (max-width: 600px) {
+  .ellipsis { max-width: 220px; }
+}
+
+/* ===== Compact Connections page ===== */
+.compact-page { font-size: 13px; }
+.compact-card { padding: 6px !important; }
+.compact-card label { display:block; margin-bottom:4px; font-weight:600; }
+
+.compact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+@media (max-width: 800px) {
+  .compact-grid { grid-template-columns: 1fr; }
+}
+
+.kv { display:flex; align-items:center; gap:6px; margin:2px 0; }
+.kv span { min-width:46px; color:#333; }
+.kv code { font-size:12px; padding:1px 4px; background:#f4f4f4; border:1px solid #ccc; border-radius:3px; }
+
+/* tiny button */
+.btn-mini {
+  padding:2px 8px;
+  font-size:12px;
+  cursor:pointer;
+  border:1px solid #9aa7bd;
+  background:#e9f0ff;
+  border-radius:3px;
+}
+
+/* black code boxes */
+.blk {
+  margin:0;
+  padding:6px;
+  border-radius:4px;
+  background:#111;
+  color:#0f0;
+  font-size:12px;
+  line-height:1.25;
+  white-space:pre;
+  overflow:auto;
+  max-height:72px;
+}
+
+.scroll-pane {
+  max-height: 72vh;
+  overflow: auto;
+  padding-right: 6px;
+}
+@media (max-height: 700px) {
+  .scroll-pane { max-height: 65vh; }
+}
+
+.tips { margin: 0 0 0 16px; padding:0; }
+.tips li { margin:2px 0; }
+.hint { margin-top:2px; opacity:.8; }
+
+.scroll {
+  padding-bottom: 72px;
+}
+
+.wallet-page.scroll {
+  padding-bottom: 24px;
+}
+
+/* === XP chart sizing controls === */
+:root{
+  --xp-chart-max-width: 1000px;
+  --xp-chart-height: 180px;
+  --xp-grid: 20;
+}
+
+.xp-chart-box{
+  max-width: var(--xp-chart-max-width);
+  margin: 6px auto 10px;
+}
+
+.xp-chart-canvas{
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid #007f00;
+  background: #001100;
+}
+
+body { color: #222; }
+a { color: #0b57d0; }
+a:hover, a:focus { text-decoration: underline; }
+.footer { color: #2b2b2b !important; }
+
+.title-bar .title-bar-text {
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+}
+
+.refresh-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  color: white;
+  font-size: 28px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.refresh-btn:hover { opacity: 0.7; }
+.refresh-btn:focus,
+.refresh-btn:active {
+  outline: none;
+  box-shadow: none;
+}
+
+#xp-window .resize-handle { z-index: 5; }
+
+@media (max-width: 768px) {
+  #xp-window .resize-handle.e,
+  #xp-window .resize-handle.w { width: 24px; }
+  #xp-window .resize-handle.n,
+  #xp-window .resize-handle.s { height: 24px; }
+  #xp-window .resize-handle.e { right: -12px; }
+  #xp-window .resize-handle.w { left:  -12px; }
+  #xp-window .resize-handle.n { top:   -12px; }
+  #xp-window .resize-handle.s { bottom:-12px; }
+  #xp-window .resize-handle.nw,
+  #xp-window .resize-handle.ne,
+  #xp-window .resize-handle.sw,
+  #xp-window .resize-handle.se { width: 28px; height: 28px; }
+  #xp-window .resize-handle.nw { top: -14px;  left:  -14px; }
+  #xp-window .resize-handle.ne { top: -14px;  right: -14px; }
+  #xp-window .resize-handle.sw { bottom:-14px; left: -14px; }
+  #xp-window .resize-handle.se { bottom:-14px; right:-14px; }
+  #xp-window .resize-handle { touch-action: none; }
+}
+
+/* ---------- Footer layout ---------- */
+.footer {
+  position: relative;
+  padding: 8px 12px;
+  box-sizing: border-box;
+}
+.footer-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.footer-left,
+.footer-right {
+  min-width: 160px;
+  max-width: 33%;
+  text-align: center;
+}
+.footer-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.footer-center * { pointer-events: auto; }
+
+/* ---------- MiningRigRentals badge (refined) ---------- */
+.rental-badge {
+  display: inline-block;
+  padding: 2px 4px;
+  background: #c0c0c0;
+  border: 2px outset #fff;
+  cursor: pointer;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.rental-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #000;
+  text-decoration: none;
+  padding: 2px 4px;
+}
+
+.rental-logo {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+}
+
+.rental-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.rental-title {
+  font-family: Tahoma, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #000;
+  margin: 0;
+}
+
+.rental-sub {
+  font-size: 10.5px;
+  color: #333;
+  margin: 1px 0 0 0;
+}
+
+.rental-badge:active {
+  border: 2px inset #fff;
+  background: #dcdcdc;
+}
+
+/* remove blue click box */
+.rental-link:focus,
+.rental-link:active {
+  outline: none;
+  box-shadow: none;
+}
+.rental-link:focus-visible {
+  outline: 1px dotted #333;
+  outline-offset: 2px;
+}
+
+/* responsive */
+@media (max-width:720px) {
+  .footer-left, .footer-right { min-width: 90px; }
+  .footer-center { font-size: 11px; }
+  .rental-logo { width:14px; height:14px; }
+  .rental-link { gap:4px; padding:2px 3px; }
+  .rental-title { font-size:11px; }
+  .rental-sub { font-size:10px; }
+}

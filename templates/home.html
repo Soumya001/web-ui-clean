@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+/* small home-specific tweaks to match the XP style */
+.home-page {
+  min-height: 62vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 28px;
+  color: #0b2e0b;
+}
+
+.home-hero {
+  text-align: center;
+  color: #ffffff;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.25);
+}
+
+.home-hero img {
+  max-width: 180px;
+  display:block;
+  margin: 0 auto 8px;
+}
+
+.home-title {
+  font-size: 48px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+  color: #000000;
+  opacity: 0.95;
+}
+
+.home-sub {
+  color: rgba(24,23,24,0.8);
+  margin-bottom: 18px;
+}
+
+/* coin selector row */
+.coin-row {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.coin-card {
+  background: linear-gradient(180deg,#ffffff,#f6f6f6);
+  border-radius: 10px;
+  padding: 14px 34px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #2f5d9a;
+  text-align:center;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.6);
+  border: 1px solid rgba(0,0,0,0.06);
+  transition: transform .12s ease, box-shadow .12s ease;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.coin-card i { font-size:18px; color:#2f5d9a; }
+
+/* hover */
+.coin-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.22); }
+
+/* small footer area already in base.html, keep spacing */
+.home-footer {
+  margin-top: 28px;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  color:rgba(255,255,255,0.85);
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="home-page">
+
+  <div class="home-hero">
+    <img src="{{ url_for('static', filename='xp-pool.png') }}" alt="{{ SITE_NAME }} Logo">
+    <div class="home-title">Welcome to {{ SITE_NAME }}</div>
+    <div class="home-sub">Select a coin to open that pool's dashboard</div>
+  </div>
+
+  <div class="coin-row" role="navigation" aria-label="Coin selector">
+    <a class="coin-card" href="{{ url_for('coin_page', coin='btc') }}">
+      <i class="pi pi-bitcoin"></i> Bitcoin (BTC)
+    </a>
+
+    <a class="coin-card" href="{{ url_for('coin_page', coin='bch') }}">
+      <i class="pi pi-wallet"></i> Bitcoin Cash (BCH)
+    </a>
+
+    <a class="coin-card" href="{{ url_for('coin_page', coin='bch') }}?demo=1" title="demo">
+      <i class="pi pi-globe"></i> Demo (no node)
+    </a>
+
+    <a class="coin-card" href="{{ url_for('xpgame_redirect') }}">
+      <i class="pi pi-game"></i> XPGAME
+    </a>
+  </div>
+
+  <div class="home-footer">
+    <small>Tip: the dashboard will show live stats if the pool parser and node are configured.</small>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,150 @@
+/* XP window is a flex column: title bar (auto), content (flex), footer (auto) */
+#xp-window {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 980px;
+  max-width: none;   /* allow dragging beyond viewport */
+  max-height: none;  /* allow dragging beyond viewport */
+  display: flex;               /* key */
+  flex-direction: column;      /* key */
+  box-shadow: 0 8px 28px rgba(0,0,0,.35);
+  overflow: hidden;            /* window itself never scrolls */
+
+  /* Hide until JS positions to prevent flicker */
+  visibility: hidden;
+
+  /* Transition for hover feedback */
+  transition: box-shadow .12s ease;
+}
+body.xp-ready #xp-window { visibility: visible; }
+#xp-window:hover { box-shadow: 0 10px 32px rgba(0,0,0,.38); }
+
+/* Inner content is also flex so the middle section can scroll */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255,255,255,.92);
+
+  flex: 1 1 auto;   /* instead of fixed height */
+  min-height: 0;    /* critical: allow .scroll to actually shrink */
+}
+
+/* Tabs at top */
+.top-tabs { margin: 0 0 4px 0; }
+
+/* Only this area scrolls; footer stays pinned */
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;               /* important for flex scroll containers */
+  overflow: auto;
+
+  /* hide scrollbars for a clean XP look */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Footer sits at bottom, never scrolls */
+.footer {
+  flex: 0 0 auto;              /* key: auto-sized flex child at bottom */
+  text-align: center;
+  font-size: 12px;
+  color: #222;
+  opacity: .85;
+  padding-top: 6px;
+  border-top: 1px solid #d6d6d6;
+}
+
+/* Drag/resize handles */
+#xp-window .resize-handle { position: absolute; user-select: none; }
+#xp-window .resize-handle.n,
+#xp-window .resize-handle.s { left: 0; right: 0; height: 6px; cursor: ns-resize; }
+#xp-window .resize-handle.e,
+#xp-window .resize-handle.w { top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
+
+#xp-window .resize-handle.n  { top: -3px; }
+#xp-window .resize-handle.s  { bottom: -3px; }
+#xp-window .resize-handle.e  { right: -3px; }
+#xp-window .resize-handle.w  { left: -3px; }
+
+#xp-window .resize-handle.nw,
+#xp-window .resize-handle.ne,
+#xp-window .resize-handle.sw,
+#xp-window .resize-handle.se {
+  width: 10px;
+  height: 10px;
+  background: transparent;
+}
+#xp-window .resize-handle.nw { top: -5px;  left: -5px;  cursor: nwse-resize; }
+#xp-window .resize-handle.ne { top: -5px;  right: -5px; cursor: nesw-resize; }
+#xp-window .resize-handle.sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+#xp-window .resize-handle.se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+
+body.dragging,
+body.resizing {
+  cursor: move;
+  user-select: none !important;
+}
+
+/* Leave a little breathing room before panels */
+.card { margin-bottom: 12px; }
+pre  { margin-bottom: 8px; }
+
+/* Minimized state (JS toggles .is-minimized) */
+#xp-window.is-minimized {
+  overflow: hidden;
+  width: 360px;   /* JS finalizes exact size/pos */
+  height: 28px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.25);
+}
+#xp-window.is-minimized .content,
+#xp-window.is-minimized .footer {
+  display: none !important;
+}
+#xp-window.is-minimized .title-bar {
+  border-bottom: none;
+}
+
+/* Touch-friendly interactions */
+#xp-window .title-bar,
+#xp-window .resize-handle {
+  touch-action: none; /* prevent page pan while dragging/resizing */
+}
+
+
+/* Original XP-style refresh button */
+.refresh-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:28px;
+  padding:0;
+  border:2px outset #fff;
+  background:#d4d0c8;
+  color:#000;
+  text-decoration:none;  /* no underline */
+  line-height:1
+}
+.refresh-btn:active{border:2px inset #fff}
+.refresh-btn .pi{font-size:14px}
+
+/* Remove underline also on hover/focus, but keep XP look */
+.refresh-btn:hover,
+.refresh-btn:focus{
+  text-decoration:none;
+}
+
+/* mobile: bigger touch target */
+@media(max-width:768px){
+  .refresh-btn{width:44px;height:44px;border-radius:6px}
+  .refresh-btn .pi{font-size:18px}
+}
+
+/* Remove dotted outline box on links after clicking */
+a:focus:not(:focus-visible) {
+  outline: none;
+}

@@ -1,0 +1,152 @@
+{% extends "base.html" %} 
+{# Page-specific meta and preload #} 
+{% set title = 'About – ' ~ SITE_NAME %} 
+{% set meta_description = 'About ' ~ SITE_NAME ~ ': secure, fast, and reliable Bitcoin mining pool with real-time stats and low fees.' %} 
+
+{% block extra_head %} 
+<link rel="preload" as="image" href="{{ url_for('static', filename='xp-pool.png') }}" fetchpriority="high"> 
+{% endblock %} 
+
+{% block body %} 
+<div class="card" style="font-family: Tahoma, Verdana, Segoe UI, sans-serif; font-size:10px; line-height:1;"> 
+  <!-- Logo aligned left above title --> 
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;"> 
+    <img src="{{ url_for('static', filename='xp-pool.png') }}" alt="XP Pool Logo" width="96" height="96" decoding="async" fetchpriority="high" style="width:96px;height:96px;" /> 
+    <h3 style="font-size:15px; margin:0;"></h3> 
+  </div> 
+
+  <!-- About info --> 
+  <p><strong>Pool Name:</strong> {{ SITE_NAME }}</p> 
+  <p><strong>Tagline:</strong> {{ SITE_TAGLINE }}</p> 
+  <p><strong>Pool Fee:</strong> 1%</p> 
+  <p><strong>Software:</strong><a href="https://bitbucket.org/ckolivas/ckpool/src/master/" target="_blank" rel="noopener noreferrer"style="color:#0366d6; text-decoration:none; font-weight:bold;"> CKPool Solo </a> + <a href="https://github.com/Soumya001/web-ui-clean" target="_blank" rel="noopener noreferrer" style="color:#0366d6; text-decoration:none; font-weight:bold;"> XP WebUI </a></p> 
+  <p><strong>Disclaimer:</strong> Pool is still under development</p> 
+
+  <!-- Donation: click to copy --> 
+  <p> 
+    <strong>Donation:</strong> 
+    <span id="donationAddr" style="font-family: ui-monospace, Consolas, Menlo, monospace; cursor:pointer; background:#f4f4f4; padding:2px 4px; border:1px solid #ccc; border-radius:3px;" title="Click to copy">
+      bc1qevyu9pngzdq54v592whjf9tm5mcztv46zpu40p
+    </span> 
+    <span id="copyNote" style="margin-left:6px; font-size:10px; color:green; display:none;">✔ Copied</span> 
+  </p> 
+
+  <!-- ============================= --> 
+  <!-- Puzzle71 Solver Download --> 
+  <!-- ============================= --> 
+  <hr style="margin: 15px 0;"> 
+  <h4 style="font-size:14px; margin-bottom:8px;">Puzzle71 Random Key Solver</h4> 
+  <p> 
+    <b>P-71-Solver.exe</b> is a standalone Windows application that searches random private keys within the <b>Bitcoin Puzzle #71</b> range. It supports: 
+    <ul style="margin:6px 0 6px 18px; padding:0; font-size:10px;"> 
+      <li>Multi-core CPU scanning</li> 
+      <li>Auto batch-size tuning</li> 
+      <li>Internet connectivity watchdog</li> 
+      <li>Alerts when a hit is found</li> 
+    </ul> 
+  </p>
+
+  <!-- MERGED SINGLE ROW: Download (primary) + Repo (secondary) + Release notes (small) -->
+  <p style="margin: 12px 0; display:flex; align-items:center; gap:8px;">
+    <!-- Primary download button: GitHub Release direct .exe -->
+    <a href="https://github.com/Soumya001/P71-BTC-Puzzle-Solver/releases/download/v0.1.0/P-71-Solver.exe"
+       target="_blank" rel="noopener noreferrer"
+       style="display:inline-block; padding:8px 12px; background:#28a745; color:white; font-weight:bold; text-decoration:none; border-radius:3px; font-size:11px;">
+      ⬇ Download P-71-Solver (Windows) — Release v0.1.0
+    </a>
+
+    <!-- Secondary repo button, visually matched but smaller -->
+    <a href="https://github.com/Soumya001/P71-BTC-Puzzle-Solver"
+       target="_blank" rel="noopener noreferrer"
+       style="display:inline-block; padding:6px 10px; background:#0366d6; color:white; font-weight:bold; text-decoration:none; border-radius:3px; font-size:11px;">
+      🔎 View repository
+    </a>
+
+    <!-- Small release notes / checksum link -->
+    <a href="https://github.com/Soumya001/P71-BTC-Puzzle-Solver/releases/tag/v0.1.0"
+       target="_blank" rel="noopener noreferrer"
+       style="font-size:10px; color:#555; margin-left:6px; text-decoration:underline;">
+      Release notes & SHA256
+    </a>
+
+    <!-- compact metadata on right -->
+    <span style="margin-left:auto; font-size:10px; color:#555;">~16MB · EXE</span>
+  </p>
+
+  <p style="font-size:9px; color:#555;">
+    File size: ~16MB | Format: EXE (single-file) | SHA256 checksum included in the release for verification.
+  </p>
+  <!-- ============================= -->
+  <!-- New: Web-UI Open Source Repo -->
+  <!-- ============================= -->
+  <p style="margin: 12px 0; display:flex; align-items:center; gap:8px;">
+    <a href="https://github.com/Soumya001/web-ui-clean"
+       target="_blank" rel="noopener noreferrer"
+       style="display:inline-block; padding:6px 10px; background:#0366d6; color:white; font-weight:bold; text-decoration:none; border-radius:3px; font-size:11px;">
+      🌐 View Web-UI Source (GitHub)
+    </a>
+  </p> 
+</div> 
+
+<script>
+/* Option A: robust clipboard copy with fallback */
+document.addEventListener('DOMContentLoaded', function () {
+  const addr = document.getElementById('donationAddr');
+  const note = document.getElementById('copyNote');
+
+  if (!addr) return;
+
+  async function copyText(text) {
+    // Try modern clipboard API first (works on HTTPS or localhost)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        // fall through to fallback
+      }
+    }
+
+    // Fallback: create a temporary textarea and execCommand('copy')
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      // Prevent scrolling to bottom on mobile
+      ta.style.position = 'fixed';
+      ta.style.top = 0;
+      ta.style.left = 0;
+      ta.style.width = '1px';
+      ta.style.height = '1px';
+      ta.style.padding = 0;
+      ta.style.border = 'none';
+      ta.style.outline = 'none';
+      ta.style.boxShadow = 'none';
+      ta.style.background = 'transparent';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  addr.style.cursor = 'pointer';
+  addr.addEventListener('click', async function () {
+    const text = addr.textContent.trim();
+    const ok = await copyText(text);
+    if (ok) {
+      if (note) {
+        note.style.display = 'inline';
+        setTimeout(() => { note.style.display = 'none'; }, 1400);
+      }
+    } else {
+      // final fallback for very restrictive contexts
+      window.prompt('Copy the donation address (Ctrl+C):', text);
+    }
+  });
+});
+</script>
+
+{% endblock %}

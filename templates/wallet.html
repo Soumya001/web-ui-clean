@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% block body_class %}wallet-page{% endblock %}
+{% block body %}
+
+<!-- Wallet header -->
+<section class="card">
+  <label>Wallet</label>
+  <div><strong class="break-all">{{ addr }}</strong></div>
+
+  <div style="margin-top:8px;">
+    <a class="button" href="/wallet/{{ addr }}/rewards">View Rewards (block hits)</a>
+  </div>
+</section>
+
+<!-- KPI row -->
+<section class="grid grid-3" style="margin-top:12px;">
+  <div class="field-row-stacked card">
+    <label>Workers</label>
+    <div>
+      <strong id="kpi-workers">
+        {# active list length vs. wallet-reported count #}
+        {% set aw = (row.active_workers|length) if row and row.active_workers else 0 %}
+        {% set wc = (row.workers|int) if row and (row.workers is not none) else (agg.workers|int if agg else 0) %}
+        {{ aw if aw > wc else wc }}
+      </strong>
+    </div>
+  </div>
+
+  <div class="field-row-stacked card">
+    <label>Hashrate 1m / 1h</label>
+    <div>
+      <strong id="kpi-h1">{{ row.hashrate1m if row else (agg.hashrate1m if agg else '—') }}</strong>
+      /
+      <strong id="kpi-h1h">{{ row.hashrate1hr if row else (agg.hashrate1hr if agg else '—') }}</strong>
+    </div>
+  </div>
+
+  <div class="field-row-stacked card">
+    <label>Luck (%)</label>
+    <div><strong id="kpi-luck">—</strong></div>
+  </div>
+</section>
+
+<!-- Single-row table -->
+<section class="card" style="margin-top:12px;">
+  <div class="table-wrap">
+    <table class="table-xp">
+      <colgroup>
+        <col style="width:20%" />
+        <col style="width:14%" />
+        <col style="width:14%" />
+        <col style="width:24%" />
+        <col style="width:14%" />
+        <col style="width:14%" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="center">Worker</th>
+          <th class="num">Hashrate1m</th>
+          <th class="num">Hashrate1h</th>
+          <th class="num">Last Share</th>
+          <th class="num">Shares</th>
+          <th class="num">Best Share</th>
+        </tr>
+      </thead>
+      <tbody id="walletRows">
+        {% if row %}
+          {% set names = (row.active_workers if row else []) or [] %}
+          <tr
+            id="walletRow"
+            data-bestshare="{{ row.bestshare if row else '' }}"
+            data-lastshare="{{ row.lastshare or 0 }}"
+            data-timeout="600"
+          >
+            <td class="center">
+              {% if names|length > 0 %}
+                {% set first = names[:3] %}
+                <span class="workers-preview">{{ first | join(', ') }}</span>
+                {% if names|length > 3 %}
+                  &nbsp;and&nbsp;
+                  <a href="#" class="show-workers" data-wallet="{{ addr }}">+{{ names|length - 3 }} more</a>
+                  <!-- full list in a template for modal -->
+                  <template id="workers-{{ addr | replace(':','_') }}">
+                    <div class="workers-modal">
+                      <div class="modal-card">
+                        <div class="modal-title">Active workers ({{ names|length }})</div>
+                        <div class="modal-body">
+                          <ul>
+                            {% for w in names %}<li>{{ w }}</li>{% endfor %}
+                          </ul>
+                        </div>
+                        <div class="modal-actions">
+                          <button class="button modal-close">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                {% endif %}
+              {% else %}
+                {% if row.workers and row.workers|int > 0 %}
+                  ({{ row.workers }} worker{{ '' if row.workers|int == 1 else 's' }})
+                {% else %}
+                  —
+                {% endif %}
+              {% endif %}
+            </td>
+
+            <td class="num cell-h1">{{ row.hashrate1m or '—' }}</td>
+            <td class="num cell-h1h">{{ row.hashrate1hr or '—' }}</td>
+            <td class="num ts cell-last">{{ row.lastshare if row.lastshare else '—' }}</td>
+            <td class="num cell-sh">{{ row.shares if row.shares is not none else '—' }}</td>
+            <td class="num cell-bs">{{ row.bestshare if row.bestshare is not none else '—' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="center">No data available</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- XP Hashrate chart -->
+<section class="card" style="margin-top:12px;">
+  <div class="xp-chart-box">
+    <div class="xp-chart-title">Hashrate (1m) History</div>
+    <canvas id="xpHashrateChart" class="xp-chart-canvas"></canvas>
+    <div class="xp-chart-note">
+      Live view (updates every 5s). Scale auto-adjusts to recent peak. Style inspired by Windows XP Task Manager.
+    </div>
+  </div>
+</section>
+
+<script>
+  // Luck (%) = bestshare / network_difficulty * 100
+  (async function () {
+    const luckEl = document.getElementById('kpi-luck');
+    try {
+      const [pRes, nRes] = await Promise.all([ fetch('/api/pool'), fetch('/api/node') ]);
+      const pool = await pRes.json();
+      const node = await nRes.json();
+
+      let diff = Number(pool?.pool?.diff);
+      if (!diff || !isFinite(diff) || diff <= 0) diff = Number(node?.difficulty);
+
+      let best = 0;
+      document.querySelectorAll('#walletRows tr').forEach(tr => {
+        const bs = parseFloat(tr.getAttribute('data-bestshare') || '0');
+        if (!isNaN(bs) && bs > best) best = bs;
+      });
+      const poolBest = Number(pool?.pool?.bestshare || 0);
+      if (poolBest > best) best = poolBest;
+
+      if (diff && diff > 0 && best > 0) {
+        luckEl.textContent = ((best / diff) * 100).toFixed(2);
+      } else {
+        luckEl.textContent = '—';
+      }
+    } catch (_) { luckEl.textContent = '—'; }
+  })();
+
+  // Blank metrics to '—' when lastshare is stale (> timeout) and no active worker names
+  (function(){
+    const row = document.getElementById('walletRow');
+    if(!row) return;
+    const namesPreview = row.querySelector('.workers-preview');
+    const hasNames = !!namesPreview;
+    const last = Number(row.dataset.lastshare || 0);
+    const timeout = Number(row.dataset.timeout || 600);
+    const now = Math.floor(Date.now()/1000);
+    if(!hasNames && (!last || (now - last) > timeout)){
+      ['.cell-h1','.cell-h1h','.cell-sh','.cell-bs'].forEach(sel => {
+        const td = row.querySelector(sel);
+        if(td) td.textContent = '—';
+      });
+      const k1 = document.getElementById('kpi-h1');
+      const k1h = document.getElementById('kpi-h1h');
+      if(k1) k1.textContent = '—';
+      if(k1h) k1h.textContent = '—';
+    }
+  })();
+
+  // Format Best Share (K,M,G,T,P) and humanize Last Share UTC
+  (function(){
+    function fmtUnits(n){
+      const v = Number(n);
+      if (!isFinite(v) || v <= 0) return '—';
+      const units = [
+        {v: 1e15, s: 'P'},
+        {v: 1e12, s: 'T'},
+        {v: 1e9,  s: 'G'},
+        {v: 1e6,  s: 'M'},
+        {v: 1e3,  s: 'K'},
+      ];
+      for (const {v:th,s} of units){
+        if (v >= th) {
+          const x = v / th;
+          return (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)) + s;
+        }
+      }
+      return String(Math.round(v));
+    }
+    const row = document.getElementById('walletRow');
+    if (!row) return;
+    const rawBest = parseFloat(row.getAttribute('data-bestshare') || '0');
+    const bestCell = row.querySelector('.cell-bs');
+    if (bestCell) bestCell.textContent = fmtUnits(rawBest);
+
+    const lastCell = row.querySelector('.cell-last');
+    const lastTs = Number(row.getAttribute('data-lastshare') || '0');
+    if (lastCell) {
+      if (lastTs > 0) {
+        const d = new Date(lastTs * 1000);
+        lastCell.textContent = d.toISOString().slice(0,19).replace('T',' ') + ' UTC';
+      } else {
+        lastCell.textContent = '—';
+      }
+    }
+  })();
+
+  // “+N more” workers modal (kept local so page works even without global handler)
+  document.addEventListener('click', function(ev){
+    const a = ev.target.closest('a.show-workers');
+    if(!a) return;
+    ev.preventDefault();
+    const id = '#workers-' + CSS.escape(a.dataset.wallet.replace(/:/g,'_'));
+    const tpl = document.querySelector(id);
+    if(!tpl) return;
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    document.body.appendChild(node);
+    const close = ()=> node.remove();
+    node.querySelector('.modal-close')?.addEventListener('click', close);
+    node.addEventListener('click', (e)=> { if(e.target === node) close(); });
+  });
+</script>
+
+<!-- include chart JS and init (square grid + persistence) -->
+<script src="/static/xp-hashrate-chart.js?v=10"></script>
+<script>
+  (async function () {
+    if (!window.XPHashrateChart) return;
+
+    // Create chart bound to this wallet address (ensures storageKey 'xpHashrate:<addr>' is set)
+    const WALLET = '{{ addr }}';
+    const WINDOW_SEC = 6 * 3600;
+    const POLL_MS = 5000;
+    const chart = window.XPHashrateChart.init('#xpHashrateChart', WALLET, { windowSec: WINDOW_SEC });
+
+    // helper localStorage key name
+    const storageKey = 'xpHashrate:' + WALLET;
+    console.info('xp-hashrate: storageKey=', storageKey);
+
+    // --- 1) Seed from server history (if available) ---
+    try {
+      const url = '/api/history/' + encodeURIComponent(WALLET) + '?window=' + WINDOW_SEC;
+      const r = await fetch(url);
+      if (r && r.ok) {
+        const j = await r.json();
+        if (Array.isArray(j.points) && j.points.length) {
+          // Normalize points into [{t, v}] form
+          const pts = j.points.map(p => {
+            if (Array.isArray(p)) return { t: Number(p[0]) || 0, v: Number(p[1]) || 0 };
+            return { t: Number(p.t || p[0]) || 0, v: Number(p.v || p[1] || p.value) || 0 };
+          }).filter(p => p.t > 0);
+          if (typeof chart.seed === 'function') {
+            chart.seed(pts);
+            console.info('xp-hashrate: seeded chart from /api/history (points=', pts.length, ')');
+          } else {
+            // fallback: push each point (push persists)
+            pts.forEach(p => chart.push(p.v));
+            if (typeof chart._prune === 'function') chart._prune();
+            if (typeof chart._save === 'function') chart._save();
+            if (typeof chart.redraw === 'function') chart.redraw();
+            console.info('xp-hashrate: seeded by pushing fallback (points=', pts.length, ')');
+          }
+        } else {
+          console.info('xp-hashrate: /api/history returned no points; using localStorage/live pushes');
+        }
+      } else {
+        console.info('xp-hashrate: /api/history not available (status)', r && r.status);
+      }
+    } catch (err) {
+      console.warn('xp-hashrate: failed to fetch /api/history:', err);
+    }
+
+    // Report what is already stored locally (for debugging)
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        console.info('xp-hashrate: localStorage samples stored =', Array.isArray(arr) ? arr.length : 0);
+      } else {
+        console.info('xp-hashrate: no samples in localStorage yet for', storageKey);
+      }
+    } catch(e){ console.warn('xp-hashrate: localStorage read failed', e); }
+
+    // --- 2) Live poll function that pushes this wallet's 1m hashrate ---
+    async function pollAndPush(){
+      try {
+        const r = await fetch('/api/pool');
+        if (!r.ok) return;
+        const j = await r.json();
+        // locate the wallet record (match wallet/address/user)
+        const rec = (j.users || []).find(u => {
+          const key = (u.wallet || u.address || u.user || '').toString();
+          return key === WALLET;
+        });
+
+        if (rec) {
+          const hr = rec.hashrate1m ?? rec.hashrate ?? 0;
+          // push numeric or string (chart.parseRate handles common formats)
+          chart.push(hr);
+          // optional: update kpi display if you want to reflect live values immediately
+          const k1 = document.getElementById('kpi-h1');
+          if (k1) k1.textContent = (rec.hashrate1m ?? rec.hashrate ?? '—');
+        } else {
+          // wallet not present in API response (offline)
+          // Option A (recommended): skip pushing to avoid recording long zeros
+          // Option B: push(0) to record offline periods and make line drop to 0
+          // Uncomment below to enable Option B:
+          // chart.push(0);
+        }
+      } catch (err) {
+        console.warn('xp-hashrate: poll failed', err);
+      }
+    }
+
+    // initial poll + periodic
+    await pollAndPush();
+    setInterval(pollAndPush, POLL_MS);
+
+    // Expose debug handle in window for quick inspection in Console
+    window.__xpHashrateDebug = { chart, storageKey };
+  })();
+</script>
+
+
+{% endblock %}

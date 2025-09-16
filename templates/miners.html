@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% set title = 'Miners - ' ~ SITE_NAME %}
+{% set meta_description = 'Active miners on ' ~ SITE_NAME ~ ': hashrate, share rate, uptime, and performance details.' %}
+{% block body %}
+
+<section class="field-row" style="margin-bottom:8px;">
+  <button onclick="loadMiners()">Refresh Miners</button>
+</section>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-xp">
+      <colgroup>
+        <col style="width:40%">
+        <col style="width:12%">
+        <col style="width:12%">
+        <col style="width:12%">
+        <col style="width:12%">
+        <col style="width:12%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="addr">User/Address</th>
+          <th class="num">Hashrate1m</th>
+          <th class="num">Hashrate5m</th>
+          <th class="num">Hashrate1h</th>
+          <th class="num">Shares</th>
+          <th class="num">Workers</th>
+        </tr>
+      </thead>
+      <tbody id="minersRows">
+        <tr><td colspan="6" class="center">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/* ----- helpers ----- */
+function esc(s){ s=(s==null?'':String(s)); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function tdNum(v){ return '<td class="num">'+esc(v==null||v===''?'—':v)+'</td>'; }
+function tdAddr(addr, names){
+  const t = esc(addr||'');
+  const link = '<a href="/wallet/'+encodeURIComponent(addr)+'">'+t+'</a>';
+  const list = (names||[]).filter(Boolean);
+  let sub = '';
+  if (list.length){
+    const shown = list.slice(0,6);
+    const more = list.length - shown.length;
+    sub = '<div style="opacity:.8;font-size:12px;margin-top:2px;" title="'+esc(list.join(', '))+'">Workers: '
+        + esc(shown.join(', ')) + (more>0?', +'+more+' more':'') + '</div>';
+  }
+  return '<td class="addr ellipsis" title="'+t+'">'+link+sub+'</td>';
+}
+
+/* fetch with timeout */
+async function fetchWithTimeout(url, opts = {}, ms = 3000){
+  const controller = new AbortController();
+  const id = setTimeout(()=>controller.abort(), ms);
+  try{
+    const res = await fetch(url, {...opts, signal: controller.signal});
+    clearTimeout(id);
+    if(!res.ok) throw new Error(url+' -> '+res.status);
+    return res.json ? res.json() : res;
+  }finally{
+    clearTimeout(id);
+  }
+}
+
+/* simple concurrency queue: run up to N promises at once */
+async function mapWithConcurrency(list, workerFn, concurrency = 8){
+  const out = [];
+  let idx = 0;
+  const runners = new Array(Math.min(concurrency, list.length)).fill().map(async ()=>{
+    while(true){
+      const i = idx++;
+      if (i >= list.length) return;
+      try{
+        const r = await workerFn(list[i], i);
+        out[i] = r;
+      }catch(err){
+        out[i] = { error: err && err.message ? err.message : String(err) };
+      }
+    }
+  });
+  await Promise.all(runners);
+  return out;
+}
+
+/* ===== improved loadMiners ===== */
+async function loadMiners(){
+  const STALENESS_SEC = 10 * 60; // hide wallets idle > 10 minutes
+  const tbody = document.getElementById('minersRows');
+  const refreshBtn = document.querySelector('button[onclick="loadMiners()"]');
+  const oldStatus = refreshBtn?.innerText || 'Refresh Miners';
+
+  // UI pre-flight
+  try{
+    if (refreshBtn) { refreshBtn.disabled = true; refreshBtn.innerText = 'Refreshing…'; }
+    tbody.innerHTML = '<tr><td colspan="6" class="center">Loading…</td></tr>';
+
+    // 1) pool snapshot (fast)
+    const pool = await fetchWithTimeout('/api/pool', {}, 3000).catch(e => { throw new Error('Failed to fetch /api/pool: '+e.message); });
+    const users = Array.isArray(pool.users) ? pool.users : [];
+
+    // 2) build unique wallets & use last_seen_ts from pool row to filter stale before fetching /api/user
+    const wallets = [];
+    const seen = {};
+    const now = Math.floor(Date.now()/1000);
+    for (const u of users){
+      const w = (u && (u.wallet || u.address || (u.user? String(u.user).split('.',1)[0] : ''))) || '';
+      if (!w || seen[w]) continue;
+      seen[w] = 1;
+      // check last_seen_ts (server-annotated) if present
+      const last_ts = u.last_seen_ts == null ? null : Number(u.last_seen_ts);
+      if (last_ts !== null && (now - last_ts > STALENESS_SEC)) {
+        // skip stale wallet (disconnected > cutoff)
+        continue;
+      }
+      wallets.push(w);
+    }
+
+    if (wallets.length === 0){
+      tbody.innerHTML = '<tr><td colspan="6" class="center">No miners to display</td></tr>';
+      return;
+    }
+
+    // 3) query /api/user/<wallet> in parallel with a concurrency cap and per-request timeout
+    //    we also render progressively as results arrive
+    tbody.innerHTML = ''; // clear the loading text so we can append
+    const chunkSize = 10; // concurrency
+    // Worker function for each wallet:
+    const worker = async (w, i) => {
+      try{
+        // small timeout so hung requests don't stall page
+        const row = await fetchWithTimeout('/api/user/'+encodeURIComponent(w), {}, 3000)
+          .catch(async (err) => {
+            // if /api/user 404 or fails, fall back to pool snapshot user row
+            const poolRow = users.find(x => ((x.wallet||x.address||'') === w)) || {};
+            return {
+              wallet: w,
+              active_workers: poolRow.active_workers || [],
+              hashrate1m: poolRow.hashrate1m || '—',
+              hashrate5m: poolRow.hashrate5m || '—',
+              hashrate1hr: poolRow.hashrate1hr || '—',
+              shares: poolRow.shares ?? poolRow.accepted ?? '—',
+              workers: (poolRow.active_workers && poolRow.active_workers.length) || (poolRow.workers || 0)
+            };
+          });
+
+        return {
+          wallet: w,
+          names: row.active_workers || [],
+          h1m: row.hashrate1m || '—',
+          h5m: row.hashrate5m || '—',
+          h1h: row.hashrate1hr || '—',
+          shares: row.shares ?? '—',
+          workers: (row.active_workers && row.active_workers.length) || (row.workers || 0)
+        };
+      }catch(e){
+        // return an object describing the error so it doesn't break the batch
+        return { wallet: w, error: e && e.message ? e.message : String(e) };
+      }
+    };
+
+    // Run with concurrency and collect results in same order as wallets array
+    const results = await mapWithConcurrency(wallets, worker, chunkSize);
+
+    // Render rows: show successful rows; optionally show a small error row if individual wallet fetch failed
+    const rows = results.filter(Boolean).map(g => {
+      if (g.error){
+        return '<tr><td class="addr ellipsis">'+esc(g.wallet)+'</td>'
+             + '<td colspan="5" class="num">Failed to load ('+esc(g.error)+')</td></tr>';
+      }
+      return '<tr>'
+        + tdAddr(g.wallet, g.names)
+        + tdNum(g.h1m)
+        + tdNum(g.h5m)
+        + tdNum(g.h1h)
+        + tdNum(g.shares)
+        + tdNum(g.workers)
+        + '</tr>';
+    });
+
+    tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="6" class="center">No miners to display</td></tr>';
+  }catch(e){
+    tbody.innerHTML = '<tr><td colspan="6" class="center">Failed to load miners</td></tr>';
+    console.error('loadMiners error:', e);
+  }finally{
+    if (refreshBtn) { refreshBtn.disabled = false; refreshBtn.innerText = oldStatus; }
+  }
+}
+
+// auto-run when the page loads
+document.addEventListener('DOMContentLoaded', loadMiners);
+// also run immediately in case DOMContentLoaded already fired
+if (document.readyState === 'interactive' || document.readyState === 'complete') loadMiners();
+</script>
+
+
+{% endblock %}
