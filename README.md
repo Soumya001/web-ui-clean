@@ -1,10 +1,3 @@
-# ensure you're in the right folder
-Set-Location -Path "C:\Users\CKing\Desktop\web-ui-multicoin"
-
-# create README.md (UTF-8)
-$readme = @'
-# web-ui-clean
-
 [![Website](https://img.shields.io/badge/website-xppool.in-blue?style=flat-square)](https://xppool.in)
 
 A modern, XP-style web interface for **ckpool**, powering the live mining pool at [Xppool.in](https://xppool.in).  
