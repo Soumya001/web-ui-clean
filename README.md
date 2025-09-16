@@ -1,40 +1,39 @@
-\# XP Pool WebUI — Multi-Coin Skeleton
+# ensure you're in the right folder
+Set-Location -Path "C:\Users\CKing\Desktop\web-ui-multicoin"
 
+# create README.md (UTF-8)
+$readme = @'
+# web-ui-clean
 
+[![Website](https://img.shields.io/badge/website-xppool.in-blue?style=flat-square)](https://xppool.in)
 
-Production-oriented Web UI for mining pools.  
+A modern, XP-style web interface for **ckpool**, powering the live mining pool at [Xppool.in](https://xppool.in).  
+This project provides a clean dashboard to monitor miners, connections, rewards, and wallets.
 
-Current state: \*\*Bitcoin (BTC)\*\* dashboard active; other coins present as unavailable pages until configured.
+---
 
+## ✨ Features
+- 📊 Real-time hashrate charts
+- 👥 Connected miners view
+- 💰 Wallet & rewards page
+- 🖼️ XP-style themed UI
+- 🔍 Search & explorer functionality
+- ⚡ Lightweight Python backend (Flask)
 
+---
 
-\## Highlights
+## 🌐 Live Demo
+👉 Visit: [https://xppool.in](https://xppool.in)
 
-\- Clean multi-coin landing page + coin selector
+### Preview
+![XP Pool Homepage](static/xp-pool.png)
 
-\- Live BTC dashboard with node and pool stats
+---
 
-\- Graceful fallback for unconfigured coins (demo mode)
+## 🚀 Installation
 
-\- Lightweight Flask backend, SQLite for local snapshots
+Clone the repository:
 
-\- Designed for easy extension to additional coins
-
-
-
-\## Quickstart
-
-1\. Copy `config.example.json` → `config.json`, fill in RPC credentials.
-
-2\. Create and activate a Python virtual environment:
-
-&nbsp;  ```bash
-
-&nbsp;  python -m venv venv
-
-&nbsp;  source venv/bin/activate
-
-&nbsp;  pip install -r requirements.txt
-
-
-
+```bash
+git clone https://github.com/Soumya001/web-ui-clean.git
+cd web-ui-clean
